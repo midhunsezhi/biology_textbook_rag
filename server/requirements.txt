@@ -1,0 +1,7 @@
+Flask
+openai
+pandas
+scikit-learn
+numpy
+python-dotenv
+nltk

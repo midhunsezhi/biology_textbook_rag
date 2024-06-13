@@ -1,39 +1,75 @@
-import openai
+from openai import OpenAI
+import pandas as pd
+import numpy as np
+from scipy.spatial.distance import cosine
+import json
+import os
+from dotenv import load_dotenv
 
+# Load environment variables from .env file
+load_dotenv()
 class HIPAgent:
-    def get_response(self, question, answer_choices):
-        """
-        Calls the OpenAI 3.5 API to generate a response to the question.
-        The response is then matched to one of the answer choices and the index of the
-        matching answer choice is returned. If the response does not match any answer choice,
-        -1 is returned.
-
-        Args:
-            question: The question to be asked.
-            answer_choices: A list of answer choices.
-
-        Returns:
-            The index of the answer choice that matches the response, or -1 if the response
-            does not match any answer choice.
-        """
-
-        # Create the prompt.
-        answer_str = "\n".join(answer_choices)
-        prompt = f"{question} \n\n{answer_str}"
-
-        # Call the OpenAI 3.5 API.
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "user", "content": prompt},
-            ],
+    def __init__(self):
+        self.client = OpenAI(
+            api_key=os.environ.get("OPENAI_API_KEY"),
         )
-        response_text = response.choices[0].message.content
+        self.embeddings_df = pd.read_csv("embeddings.csv")
+        self.embeddings_df['embedding'] = self.embeddings_df['embedding'].apply(eval)
 
-        # Match the response to one of the answer choices.
-        for i, answer_choice in enumerate(answer_choices):
-            if response_text == answer_choice:
-                return i
+    def get_embedding(self, text):
+        return self.client.embeddings.create(input = [text], model='text-embedding-3-small').data[0].embedding
 
-        # If the response does not match any answer choice, return -1.
-        return -1
+    def find_relevant_context(self, question):
+        question_embedding = self.get_embedding(question)
+        embeddings = self.embeddings_df['embedding'].tolist()
+        similarities = [1 - cosine(question_embedding, embedding) for embedding in embeddings]
+        best_match_index = np.argmax(similarities)
+        return self.embeddings_df.iloc[best_match_index]['chunk']
+
+    def get_response(self, question, answer_choices):
+        system_prompt = """
+         You're an assistant trying to answer multiple choice questions on Biology based on provided context.
+         You'll be given 4 options for each question and you have to select the correct one.
+         Only use the provided context to answer the question.
+         Your response should be the index of the correct option as a JSON object.
+
+         Example1:
+
+            Context: The Los Angeles Dodgers won the World Series in 2020.
+            Question: Where was world series played?
+            Options: Los Angeles, New York, Miami, Chicago
+            
+            Your response: {"correct_index": 0}
+
+        Example2:
+            
+            Context: The Los Angeles Dodgers won the World Series in 2020.
+            Question: Who won the world series in 2020?
+            Options: New York Yankees, Los Angeles Dodgers, Miami Marlins, Chicago Cubs
+            
+            Your response: {"correct_index": 1}
+        """
+        context = self.find_relevant_context(question)
+
+        response = self.client.chat.completions.create(
+            model="gpt-3.5-turbo-0125",
+            response_format={ "type": "json_object" },
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"""
+                    Context: {context}
+                    Question: {question}
+                    Options: {', '.join(answer_choices)}
+                """},
+            ]
+        )
+        
+        answer_content = response.choices[0].message.content
+
+        try:
+            answer_json = json.loads(answer_content)
+            correct_index = answer_json['correct_index']
+        except:
+            correct_index = -1
+        
+        return correct_index
