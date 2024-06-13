@@ -4,7 +4,7 @@ import { Question } from '../types';
 
 interface QuizProps {
   question: Question;
-  onNext: (isCorrect: boolean) => void;
+  onNext: (isCorrect: boolean, userAnswer: string) => Promise<void>;
 }
 
 const Quiz: React.FC<QuizProps> = ({ question, onNext }) => {
@@ -14,10 +14,10 @@ const Quiz: React.FC<QuizProps> = ({ question, onNext }) => {
     setSelectedChoice(choice);
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (selectedChoice !== null) {
       const isCorrect = selectedChoice === question.correctAnswer;
-      onNext(isCorrect);
+      await onNext(isCorrect, selectedChoice);
       setSelectedChoice(null);
     }
   };

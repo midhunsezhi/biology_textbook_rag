@@ -1,7 +1,9 @@
 from flask import Flask, request, jsonify
 from hip_agent import HIPAgent
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 hip_agent = HIPAgent()
 
 @app.route('/get_answer', methods=['POST'])
