@@ -13,13 +13,15 @@ const App: React.FC = () => {
   const [quizEnded, setQuizEnded] = useState(false);
 
   useEffect(() => {
-    if (quizStarted && timeLeft > 0) {
-      const timer = setInterval(() => {
-        setTimeLeft((prevTime) => prevTime - 1);
-      }, 1000);
-      return () => clearInterval(timer);
-    } else if (timeLeft === 0) {
-      setQuizEnded(true);
+    if (quizStarted) {
+      if (timeLeft > 0) {
+        const timer = setInterval(() => {
+          setTimeLeft((prevTime) => prevTime - 1);
+        }, 1000);
+        return () => clearInterval(timer);
+      } else if (timeLeft === 0) {
+        setQuizEnded(true);
+      } 
     }
   }, [quizStarted, timeLeft]);
 
