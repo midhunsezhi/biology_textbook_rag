@@ -8,7 +8,7 @@ import EndScreen from './components/EndScreen';
 const App: React.FC = () => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [score, setScore] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(20 * 60); // 20 minutes in seconds
+  const [timeLeft, setTimeLeft] = useState(0);
   const [quizStarted, setQuizStarted] = useState(false);
   const [quizEnded, setQuizEnded] = useState(false);
 
@@ -28,7 +28,7 @@ const App: React.FC = () => {
     setQuizEnded(false);
     setCurrentQuestionIndex(0);
     setScore(0);
-    setTimeLeft(20 * 60);
+    setTimeLeft((questions.length) * 60);
   };
 
   const handleNextQuestion = (isCorrect: boolean) => {
