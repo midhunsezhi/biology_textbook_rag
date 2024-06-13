@@ -202,3 +202,5 @@ export const questions: Question[] = [
     "correctAnswer": "when individuals mate with those who are similar to themselves"
   }
 ]
+
+export default questions;

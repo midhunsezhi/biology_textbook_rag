@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { Box, Typography, Button } from '@mui/material';
+import { Box, Typography, Button, CircularProgress } from '@mui/material';
 import { Question } from '../types';
 
 interface QuizProps {
   question: Question;
   onNext: (isCorrect: boolean, userAnswer: string) => Promise<void>;
+  loading: boolean;
 }
 
-const Quiz: React.FC<QuizProps> = ({ question, onNext }) => {
+const Quiz: React.FC<QuizProps> = ({ question, onNext, loading }) => {
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
 
   const handleChoiceSelect = (choice: string) => {
@@ -33,6 +34,7 @@ const Quiz: React.FC<QuizProps> = ({ question, onNext }) => {
           onClick={() => handleChoiceSelect(choice)}
           fullWidth
           sx={{ mb: 1 }}
+          disabled={loading}
         >
           {choice}
         </Button>
@@ -41,12 +43,17 @@ const Quiz: React.FC<QuizProps> = ({ question, onNext }) => {
         variant="contained"
         color="secondary"
         onClick={handleNext}
-        disabled={selectedChoice === null}
+        disabled={selectedChoice === null || loading}
       >
         Next
+        {loading && (
+          <Box display="flex" alignContent='center' sx={{ ml: 1 }} >
+            <CircularProgress size={15} />
+          </Box>
+        )}
       </Button>
     </Box>
   );
 };
 
-export default Quiz;
+export default React.memo(Quiz);

@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Typography, Box } from '@mui/material';
-import { questions } from './data/questions';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Container, Typography, Box, CircularProgress } from '@mui/material';
+import { questions as allQuestions } from './data/questions';
 import Quiz from './components/Quiz';
 import StartScreen from './components/StartScreen';
 import EndScreen from './components/EndScreen';
 import { getModelAnswer } from './utils/api';
+import { useTimer } from './hooks/useTimer';
 
 interface AnswerRecord {
   question: string;
@@ -17,35 +18,37 @@ const App: React.FC = () => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [modelScore, setModelScore] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(0);
   const [quizStarted, setQuizStarted] = useState(false);
   const [quizEnded, setQuizEnded] = useState(false);
   const [answers, setAnswers] = useState<AnswerRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [questions, setQuestions] = useState(allQuestions);
+
+  const timePerQuestion = 60; // 1 minute per question
+  const initialTime = questions.length * timePerQuestion; // initial time based on number of questions
+  const timeLeft = useTimer(initialTime, quizStarted, quizEnded);
 
   useEffect(() => {
-    if (quizStarted) {
-      if (timeLeft > 0) {
-        const timer = setInterval(() => {
-          setTimeLeft((prevTime) => prevTime - 1);
-        }, 1000);
-        return () => clearInterval(timer);
-      } else if (timeLeft === 0) {
-        setQuizEnded(true);
-      }
+    if (quizStarted && timeLeft === 0) {
+      setQuizEnded(true);
     }
   }, [quizStarted, timeLeft]);
 
-  const handleStartQuiz = () => {
+  const handleStartQuiz = useCallback(() => {
+    // Randomly select 5 questions from allQuestions
+    const shuffledQuestions = allQuestions.sort(() => 0.5 - Math.random());
+    const selectedQuestions = shuffledQuestions.slice(0, 5);
+    setQuestions(selectedQuestions);
     setQuizStarted(true);
     setQuizEnded(false);
     setCurrentQuestionIndex(0);
     setScore(0);
     setModelScore(0);
-    setTimeLeft(20 * 60);
     setAnswers([]);
-  };
+  }, []);
 
-  const handleNextQuestion = async (isCorrect: boolean, userAnswer: string) => {
+  const handleNextQuestion = useCallback(async (isCorrect: boolean, userAnswer: string) => {
+    setLoading(true);
     const question = questions[currentQuestionIndex];
     const modelAnswerIndex = await getModelAnswer(question.question, question.choices);
     const modelAnswer = question.choices[modelAnswerIndex];
@@ -72,7 +75,8 @@ const App: React.FC = () => {
     } else {
       setQuizEnded(true);
     }
-  };
+    setLoading(false);
+  }, [currentQuestionIndex, modelScore, questions, score]);
 
   if (!quizStarted) {
     return <StartScreen onStart={handleStartQuiz} />;
@@ -97,6 +101,7 @@ const App: React.FC = () => {
         <Quiz
           question={questions[currentQuestionIndex]}
           onNext={(isCorrect, userAnswer) => handleNextQuestion(isCorrect, userAnswer)}
+          loading={loading}
         />
       )}
     </Container>
