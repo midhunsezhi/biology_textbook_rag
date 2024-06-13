@@ -31,4 +31,4 @@ python generate_embeddings.py # This will take a while
 python app.py
 ```
 
-To see how the embeddings were generated, check out the [this script](/server/generate_embeddings.py).
+To see how the embeddings were generated, check [this script](/server/generate_embeddings.py).
